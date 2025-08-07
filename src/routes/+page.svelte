@@ -1,12 +1,12 @@
 <script lang="ts">
 let message = '';
-let entity = '';
+let clientName = '';
 let chatHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 let loading = false;
 
 async function sendMessage() {
-if (!message.trim() || !entity.trim()) {
-alert('Please enter both a message and entity ID');
+if (!message.trim() || !clientName.trim()) {
+alert('Please enter both a message and client name');
 return;
 }
 
@@ -21,7 +21,7 @@ method: 'POST',
 headers: {
 'Content-Type': 'application/json'
 },
-body: JSON.stringify({ message, entity })
+body: JSON.stringify({ message, clientName })
 });
 
 const data = await response.json();
@@ -54,13 +54,13 @@ sendMessage();
 <h1>🤖 Zoho CRM AI Assistant</h1>
 <p class="subtitle">Intelligent context-aware responses powered by vector search and AI</p>
 
-<div class="entity-input">
-<label for="entity">Entity ID:</label>
+<div class="client-input">
+<label for="clientName">Client or Company Name:</label>
 <input 
-id="entity"
+id="clientName"
 type="text" 
-bind:value={entity} 
-placeholder="Enter Lead ID, Deal ID, etc. (e.g., lead_123)"
+bind:value={clientName} 
+placeholder="Enter client name or company (e.g., John Doe, Acme Corp)"
 />
 </div>
 
@@ -69,13 +69,18 @@ placeholder="Enter Lead ID, Deal ID, etc. (e.g., lead_123)"
 {#if chatHistory.length === 0}
 <div class="welcome-message">
 <h3>👋 Welcome!</h3>
-<p>Enter an Entity ID above and ask questions about your CRM data.</p>
-<p><strong>Example:</strong> "What do we know about this lead?" or "What's the latest update?"</p>
+<p>Enter a client or company name above and ask questions about your CRM data.</p>
+<p><strong>Examples:</strong></p>
+<ul>
+<li>"What do we know about John Doe?"</li>
+<li>"What's the latest update on Acme Corp?"</li>
+<li>"Show me all communications with this client"</li>
+</ul>
 <div class="demo-section">
 <h4>🧪 Try the Demo:</h4>
 <ol>
 <li>First, send some test data to the webhook</li>
-<li>Then use entity ID <code>lead_123</code> to ask questions</li>
+<li>Then use client name <code>John Doe</code> or company <code>Acme Corp</code> to ask questions</li>
 </ol>
 <div class="webhook-info">
 <p><strong>Webhook URL:</strong></p>
@@ -121,7 +126,7 @@ on:keypress={handleKeyPress}
 placeholder="Ask a question about your CRM data..."
 disabled={loading}
 ></textarea>
-<button on:click={sendMessage} disabled={loading || !message.trim() || !entity.trim()}>
+<button on:click={sendMessage} disabled={loading || !message.trim() || !clientName.trim()}>
 {loading ? '⏳' : '📤'} Send
 </button>
 </div>
@@ -151,18 +156,18 @@ margin-bottom: 30px;
 font-size: 1.1rem;
 }
 
-.entity-input {
+.client-input {
 margin-bottom: 20px;
 }
 
-.entity-input label {
+.client-input label {
 display: block;
 margin-bottom: 8px;
 font-weight: 600;
 color: #333;
 }
 
-.entity-input input {
+.client-input input {
 width: 100%;
 padding: 12px;
 border: 2px solid #e1e5e9;
@@ -171,7 +176,7 @@ font-size: 16px;
 transition: border-color 0.2s;
 }
 
-.entity-input input:focus {
+.client-input input:focus {
 outline: none;
 border-color: #007cba;
 }
@@ -202,6 +207,17 @@ color: #666;
 .welcome-message h3 {
 margin-bottom: 15px;
 color: #333;
+}
+
+.welcome-message ul {
+text-align: left;
+display: inline-block;
+margin: 15px 0;
+}
+
+.welcome-message li {
+margin-bottom: 8px;
+color: #555;
 }
 
 .demo-section {
