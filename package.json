@@ -26,6 +26,7 @@
 		"vite": "^7.0.4"
 	},
 	"dependencies": {
+		"@sveltejs/adapter-vercel": "^5.8.2",
 		"chromadb": "^3.0.10",
 		"dotenv": "^17.2.1",
 		"node-fetch": "^3.3.2",
