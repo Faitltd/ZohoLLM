@@ -1,12 +1,12 @@
 <script lang="ts">
 let message = '';
-let clientName = '';
+let searchName = '';
 let chatHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 let loading = false;
 
 async function sendMessage() {
-if (!message.trim() || !clientName.trim()) {
-alert('Please enter both a message and client name');
+if (!message.trim() || !searchName.trim()) {
+alert('Please enter both a message and search name');
 return;
 }
 
@@ -21,7 +21,7 @@ method: 'POST',
 headers: {
 'Content-Type': 'application/json'
 },
-body: JSON.stringify({ message, clientName })
+body: JSON.stringify({ message, searchName })
 });
 
 const data = await response.json();
@@ -54,13 +54,13 @@ sendMessage();
 <h1>🤖 Zoho CRM AI Assistant</h1>
 <p class="subtitle">Intelligent context-aware responses powered by vector search and AI</p>
 
-<div class="client-input">
-<label for="clientName">Client or Company Name:</label>
+<div class="search-input">
+<label for="searchName">Lead Name, Deal Name, or Company:</label>
 <input 
-id="clientName"
+id="searchName"
 type="text" 
-bind:value={clientName} 
-placeholder="Enter client name or company (e.g., John Doe, Acme Corp)"
+bind:value={searchName} 
+placeholder="Enter Lead Name, Deal Name, or Company (e.g., John Doe, Q4 Sales Deal, Acme Corp)"
 />
 </div>
 
@@ -69,23 +69,34 @@ placeholder="Enter client name or company (e.g., John Doe, Acme Corp)"
 {#if chatHistory.length === 0}
 <div class="welcome-message">
 <h3>👋 Welcome!</h3>
-<p>Enter a client or company name above and ask questions about your CRM data.</p>
-<p><strong>Examples:</strong></p>
+<p>Enter a <strong>Lead Name</strong>, <strong>Deal Name</strong>, or <strong>Company Name</strong> above and ask questions about your CRM data.</p>
+<div class="examples">
+<h4>📝 Search Examples:</h4>
 <ul>
-<li>"What do we know about John Doe?"</li>
-<li>"What's the latest update on Acme Corp?"</li>
-<li>"Show me all communications with this client"</li>
+<li><strong>Lead Name:</strong> "John Doe", "Jane Smith"</li>
+<li><strong>Deal Name:</strong> "Q4 Sales Deal", "Enterprise Contract"</li>
+<li><strong>Company:</strong> "Acme Corp", "Tech Solutions Inc"</li>
 </ul>
+</div>
+<div class="questions">
+<h4>💬 Question Examples:</h4>
+<ul>
+<li>"What do we know about this lead?"</li>
+<li>"What's the latest update on this deal?"</li>
+<li>"Show me all communications with this company"</li>
+<li>"What's the status of this opportunity?"</li>
+</ul>
+</div>
 <div class="demo-section">
 <h4>🧪 Try the Demo:</h4>
 <ol>
 <li>First, send some test data to the webhook</li>
-<li>Then use client name <code>John Doe</code> or company <code>Acme Corp</code> to ask questions</li>
+<li>Then use <code>John Doe</code> (Lead Name) or <code>Acme Corp</code> (Company) to ask questions</li>
 </ol>
 <div class="webhook-info">
 <p><strong>Webhook URL:</strong></p>
 <code>POST /api/zoho-webhook</code>
-<p><strong>Sample Data:</strong> Send JSON with Lead_Name, Company, Lead_Status, Email, and id fields</p>
+<p><strong>Sample Data:</strong> Send JSON with Lead_Name, Deal_Name, Company, and other Zoho fields</p>
 </div>
 </div>
 </div>
@@ -126,7 +137,7 @@ on:keypress={handleKeyPress}
 placeholder="Ask a question about your CRM data..."
 disabled={loading}
 ></textarea>
-<button on:click={sendMessage} disabled={loading || !message.trim() || !clientName.trim()}>
+<button on:click={sendMessage} disabled={loading || !message.trim() || !searchName.trim()}>
 {loading ? '⏳' : '📤'} Send
 </button>
 </div>
@@ -156,18 +167,18 @@ margin-bottom: 30px;
 font-size: 1.1rem;
 }
 
-.client-input {
+.search-input {
 margin-bottom: 20px;
 }
 
-.client-input label {
+.search-input label {
 display: block;
 margin-bottom: 8px;
 font-weight: 600;
 color: #333;
 }
 
-.client-input input {
+.search-input input {
 width: 100%;
 padding: 12px;
 border: 2px solid #e1e5e9;
@@ -176,7 +187,7 @@ font-size: 16px;
 transition: border-color 0.2s;
 }
 
-.client-input input:focus {
+.search-input input:focus {
 outline: none;
 border-color: #007cba;
 }
@@ -209,13 +220,27 @@ margin-bottom: 15px;
 color: #333;
 }
 
-.welcome-message ul {
+.examples, .questions {
+margin: 20px 0;
 text-align: left;
-display: inline-block;
-margin: 15px 0;
+background: white;
+padding: 15px;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.welcome-message li {
+.examples h4, .questions h4 {
+margin-bottom: 10px;
+color: #333;
+font-size: 1rem;
+}
+
+.examples ul, .questions ul {
+margin: 0;
+padding-left: 20px;
+}
+
+.examples li, .questions li {
 margin-bottom: 8px;
 color: #555;
 }
