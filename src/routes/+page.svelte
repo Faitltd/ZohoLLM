@@ -80,14 +80,7 @@ placeholder="Enter Lead ID, Deal ID, etc. (e.g., lead_123)"
 <div class="webhook-info">
 <p><strong>Webhook URL:</strong></p>
 <code>POST /api/zoho-webhook</code>
-<p><strong>Sample Data:</strong></p>
-<pre>{
-  "Lead_Name": "John Doe",
-  "Company": "Acme Corp",
-  "Lead_Status": "Qualified",
-  "Email": "john.doe@acme.com",
-  "id": "lead_123"
-}</pre>
+<p><strong>Sample Data:</strong> Send JSON with Lead_Name, Company, Lead_Status, Email, and id fields</p>
 </div>
 </div>
 </div>
@@ -232,16 +225,6 @@ background: #e9ecef;
 padding: 4px 8px;
 border-radius: 4px;
 font-family: 'Monaco', 'Consolas', monospace;
-}
-
-.webhook-info pre {
-background: #2d3748;
-color: #e2e8f0;
-padding: 15px;
-border-radius: 6px;
-overflow-x: auto;
-font-size: 12px;
-margin-top: 10px;
 }
 
 .message {
