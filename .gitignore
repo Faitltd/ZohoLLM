@@ -5,6 +5,10 @@
 .env.test.local
 .env.production.local
 
+# ChromaDB data directory
+chroma/
+*.sqlite3
+
 # Dependencies
 node_modules/
 npm-debug.log*
