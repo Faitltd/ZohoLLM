@@ -1,0 +1,30 @@
+{
+  "name": "zoho-llm",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-auto": "^2.1.1",
+    "@sveltejs/kit": "^1.20.4",
+    "svelte": "^4.2.20",
+    "svelte-check": "^3.8.6",
+    "typescript": "^5.9.2",
+    "vite": "^4.5.14"
+  },
+  "type": "module",
+  "dependencies": {
+    "chromadb": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.20.1"
+  }
+}

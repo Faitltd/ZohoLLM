@@ -1,0 +1,9 @@
+{
+	"/": [],
+	"/api/chat": [
+		"src/routes/api/chat/+server.js"
+	],
+	"/api/zoho-webhook": [
+		"src/routes/api/zoho-webhook/+server.js"
+	]
+}
