@@ -59,7 +59,7 @@ async function testWebhook() {
             },
             body: JSON.stringify({
                 message: "What do we know about John Doe?",
-                entity: "lead_123"
+                searchName: "John Doe"
             })
         });
         

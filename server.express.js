@@ -3,6 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { upsertToVectorDb, queryVectorDb } from './src/lib/vectorDb.js';
 
+// Legacy Express server (kept for reference only). Not used by SvelteKit.
+// Prefer running `npm run dev` (Vite dev) or `svelte-kit preview` for the app.
+
 // Load environment variables
 dotenv.config();
 
@@ -64,7 +67,7 @@ app.post('/api/zoho-webhook', async (req, res) => {
     }
 });
 
-// Chat endpoint
+// Chat endpoint (legacy: expects `entity`)
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, entity } = req.body;
@@ -130,70 +133,7 @@ ${context}
     }
 });
 
-// Simple HTML page for testing
-app.get('/', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Zoho CRM AI Assistant</title>
-            <style>
-                body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-                .container { margin-bottom: 20px; }
-                input, textarea, button { padding: 10px; margin: 5px; }
-                textarea { width: 100%; height: 100px; }
-                button { background: #007cba; color: white; border: none; cursor: pointer; }
-                .response { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
-            </style>
-        </head>
-        <body>
-            <h1>Zoho CRM AI Assistant</h1>
-            
-            <div class="container">
-                <h3>Test Chat</h3>
-                <input type="text" id="entity" placeholder="Entity ID (e.g., lead_123)" style="width: 200px;">
-                <br>
-                <textarea id="message" placeholder="Ask a question about your CRM data..."></textarea>
-                <br>
-                <button onclick="sendMessage()">Send Message</button>
-                <div id="response" class="response" style="display: none;"></div>
-            </div>
-
-            <script>
-                async function sendMessage() {
-                    const entity = document.getElementById('entity').value;
-                    const message = document.getElementById('message').value;
-                    const responseDiv = document.getElementById('response');
-                    
-                    if (!entity || !message) {
-                        alert('Please enter both entity ID and message');
-                        return;
-                    }
-                    
-                    responseDiv.style.display = 'block';
-                    responseDiv.innerHTML = 'Thinking...';
-                    
-                    try {
-                        const response = await fetch('/api/chat', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ message, entity })
-                        });
-                        
-                        const data = await response.json();
-                        responseDiv.innerHTML = '<strong>AI Response:</strong><br>' + (data.response || data.error);
-                    } catch (error) {
-                        responseDiv.innerHTML = 'Error: ' + error.message;
-                    }
-                }
-            </script>
-        </body>
-        </html>
-    `);
-});
-
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log('Webhook endpoint: POST /api/zoho-webhook');
-    console.log('Chat endpoint: POST /api/chat');
+    console.log(`Legacy Express server running on http://localhost:${PORT}`);
 });
+

@@ -1,13 +1,16 @@
-import { upsertToVectorDb } from '$lib/vectorDb.js';
+import { upsertToVectorDb } from '$lib/vectorDb-vercel.js';
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 
-export async function POST({ request }) {
+export const POST: RequestHandler = async ({ request }) => {
     try {
         const data = await request.json();
+        console.log('Received webhook data:', JSON.stringify(data, null, 2));
         
         // This logic to determine module and ID
         let moduleType = 'unknown';
-        let recordId = null;
-        let entityId = null; // The parent ID for association
+        let recordId: string | null = null;
+        let entityId: string | null = null; // The parent ID for association
 
         if (data.Lead_Name) {
             moduleType = 'leads';
@@ -16,7 +19,7 @@ export async function POST({ request }) {
         } else if (data.Deal_Name) {
             moduleType = 'deals';
             recordId = data.id || data.Deal_Id;
-            entityId = data.Contact_Name?.id || data.Parent_Id; // Associate with contact/lead
+            entityId = data.Contact_Name?.id || data.Parent_Id || recordId; // Associate with contact/lead, or self if no parent
         } else if (data.Project_Name) {
             moduleType = 'projects';
             recordId = data.id || data.Project_Id;
@@ -31,22 +34,17 @@ export async function POST({ request }) {
             entityId = data.Parent_Id;
         }
         
-        // --- The Big Change ---
-        // Instead of saving to memory and sending to the LLM immediately,
-        // we just process and store the data in our vector DB.
+        // Process and store the data in our vector DB
         if (moduleType !== 'unknown' && recordId && entityId) {
             await upsertToVectorDb(moduleType, recordId, entityId, data);
             console.log(`Successfully processed webhook for ${moduleType}-${recordId}`);
+            return json({ success: true, message: 'Data processed successfully' });
         } else {
             console.warn("Could not determine module or ID for webhook data:", data);
+            return json({ error: 'Could not determine module or ID' }, { status: 400 });
         }
-
-        // We no longer need to get related data or call the LLM here.
-        // The webhook's only job is to receive and store.
-        
-        return new Response('OK', { status: 200 });
     } catch (error) {
         console.error('Error processing webhook:', error);
-        return new Response('Internal Server Error', { status: 500 });
+        return json({ error: 'Internal server error', details: (error as Error).message }, { status: 500 });
     }
-}
+};

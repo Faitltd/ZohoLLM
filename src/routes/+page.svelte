@@ -1,49 +1,70 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 
-	let message = '';
-	let entity = '';
-	let chatHistory = [];
-	let loading = false;
+	type ChatMessage = { role: 'user' | 'assistant'; content: string };
+	let message: string = '';
+	let searchName: string = '';
+	let chatHistory: ChatMessage[] = [];
+	let loading: boolean = false;
+
+	// Load chat history and searchName from localStorage for simple persistence
+	onMount(() => {
+		try {
+			const saved = localStorage.getItem('chatHistory');
+			const savedSearch = localStorage.getItem('searchName');
+			if (saved) chatHistory = JSON.parse(saved);
+			if (savedSearch) searchName = savedSearch;
+		} catch { /* ignore */ }
+	});
+
+	function saveState() {
+		try {
+			localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+			localStorage.setItem('searchName', searchName);
+		} catch { /* ignore */ }
+	}
 
 	async function sendMessage() {
-		if (!message.trim() || !entity.trim()) {
-			alert('Please enter both a message and entity ID');
+		if (!message.trim() || !searchName.trim()) {
+			alert('Please enter both a message and search name');
 			return;
 		}
 
 		loading = true;
-		
+
 		// Add user message to chat history
 		chatHistory = [...chatHistory, { role: 'user', content: message }];
-		
+		saveState();
+
 		try {
 			const response = await fetch('/api/chat', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ message, entity })
+				body: JSON.stringify({ message, entity: searchName })
 			});
 
 			const data = await response.json();
-			
+
 			if (data.response) {
 				// Add AI response to chat history
 				chatHistory = [...chatHistory, { role: 'assistant', content: data.response }];
 			} else {
 				chatHistory = [...chatHistory, { role: 'assistant', content: 'Sorry, I encountered an error.' }];
 			}
+			saveState();
 		} catch (error) {
 			console.error('Error sending message:', error);
 			chatHistory = [...chatHistory, { role: 'assistant', content: 'Sorry, I encountered an error.' }];
+			saveState();
 		}
 
 		message = '';
 		loading = false;
 	}
 
-	function handleKeyPress(event) {
+	function handleKeyPress(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
 			sendMessage();
@@ -55,13 +76,13 @@
 	<div class="container">
 		<h1>Zoho CRM AI Assistant</h1>
 		
-		<div class="entity-input">
-			<label for="entity">Entity ID:</label>
-			<input 
-				id="entity"
-				type="text" 
-				bind:value={entity} 
-				placeholder="Enter Lead ID, Deal ID, etc."
+		<div class="search-input">
+			<label for="searchName">Lead Name, Deal Name, or Company:</label>
+			<input
+				id="searchName"
+				type="text"
+				bind:value={searchName}
+				placeholder="Enter Lead Name, Deal Name, or Company (e.g., John Doe, Q4 Sales Deal, Acme Corp)"
 			/>
 		</div>
 
@@ -88,8 +109,8 @@
 					placeholder="Ask a question about your CRM data..."
 					disabled={loading}
 				></textarea>
-				<button on:click={sendMessage} disabled={loading || !message.trim() || !entity.trim()}>
-					Send
+				<button on:click={sendMessage} disabled={loading || !message.trim() || !searchName.trim()}>
+					{loading ? '⏳' : '📤'} Send
 				</button>
 			</div>
 		</div>
@@ -110,22 +131,29 @@
 		margin-bottom: 30px;
 	}
 
-	.entity-input {
+	.search-input {
 		margin-bottom: 20px;
 	}
 
-	.entity-input label {
+	.search-input label {
 		display: block;
-		margin-bottom: 5px;
-		font-weight: bold;
+		margin-bottom: 8px;
+		font-weight: 600;
+		color: #333;
 	}
 
-	.entity-input input {
+	.search-input input {
 		width: 100%;
-		padding: 10px;
-		border: 1px solid #ddd;
-		border-radius: 4px;
+		padding: 12px;
+		border: 2px solid #e1e5e9;
+		border-radius: 8px;
 		font-size: 16px;
+		transition: border-color 0.2s;
+	}
+
+	.search-input input:focus {
+		outline: none;
+		border-color: #007cba;
 	}
 
 	.chat-container {

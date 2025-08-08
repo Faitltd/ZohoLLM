@@ -1,9 +1,23 @@
 {
 	"/": [],
 	"/api/chat": [
-		"src/routes/api/chat/+server.js"
+		"src/routes/api/chat/+server.ts"
+	],
+	"/api/entities": [
+		"src/routes/api/entities/+server.ts"
+	],
+	"/api/health": [
+		"src/routes/api/health/+server.ts"
+	],
+	"/api/test": [
+		"src/routes/api/test/+server.ts"
+	],
+	"/api/webhook-log": [
+		"src/routes/api/webhook-log/+server.ts"
 	],
 	"/api/zoho-webhook": [
-		"src/routes/api/zoho-webhook/+server.js"
-	]
+		"src/routes/api/zoho-webhook/+server.ts"
+	],
+	"/dashboard": [],
+	"/webhooks": []
 }
