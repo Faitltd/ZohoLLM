@@ -20,6 +20,7 @@ export const GET: RequestHandler = async () => {
     }
   } else {
     health.chroma = { ok: false, reason: 'Configured to memory' };
+
   }
 
   return json(health);

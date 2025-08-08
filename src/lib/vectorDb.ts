@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/private';
 // Runtime configuration
 const CHROMA_PATH = env.CHROMA_URL || 'http://localhost:8000';
 const OPENAI_KEY = env.OPENAI_API_KEY;
-const CONFIGURED_BACKEND = (env.VECTOR_BACKEND || 'auto').toLowerCase(); // 'chroma' | 'memory' | 'auto'
+const CONFIGURED_BACKEND = (env.VECTOR_BACKEND || 'auto').toLowerCase();
 
 // OpenAI (shared)
 const openai = new OpenAI({ apiKey: OPENAI_KEY });
@@ -25,7 +25,6 @@ const memoryStore = new Map<string, { embedding: number[]; metadata: any; docume
 export function getActiveVectorBackend() {
 	return ACTIVE_BACKEND;
 }
-
 
 /**
  * A helper function to get or create a ChromaDB collection.
