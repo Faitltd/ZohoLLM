@@ -1,17 +1,15 @@
 import { ChromaClient } from 'chromadb';
 import OpenAI from 'openai';
-import dotenv from 'dotenv';
+import { env } from '$env/dynamic/private';
 
-// Load environment variables
-dotenv.config();
+// Initialize clients using runtime env (works on Vercel)
+const CHROMA_PATH = env.CHROMA_URL || 'http://localhost:8000';
+const OPENAI_KEY = env.OPENAI_API_KEY;
 
-// Initialize clients
-const chromaClient = new ChromaClient({
-    path: "http://localhost:8000"
-}); // Connects to local ChromaDB instance
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const chromaClient = new ChromaClient({ path: CHROMA_PATH });
+const openai = new OpenAI({ apiKey: OPENAI_KEY });
 
-const COLLECTION_NAME = "zoho_crm_context";
+const COLLECTION_NAME = 'zoho_crm_context';
 
 /**
  * A helper function to get or create a ChromaDB collection.
@@ -26,6 +24,19 @@ async function getCollection() {
     }
 }
 
+
+	/**
+	 * Helper to embed a single string with OpenAI (small model for cost/latency)
+	 */
+	async function embedText(text: string): Promise<number[]> {
+		if (!OPENAI_KEY) throw new Error('OPENAI_API_KEY not configured');
+		const res = await openai.embeddings.create({
+			model: 'text-embedding-3-small',
+			input: text
+		});
+		return res.data[0].embedding as unknown as number[];
+	}
+
 /**
  * Creates a text chunk from Zoho data, generates an embedding, and upserts it into the vector DB.
  * @param {string} moduleType - The Zoho module (e.g., 'leads', 'notes').
@@ -35,7 +46,7 @@ async function getCollection() {
  */
 export async function upsertToVectorDb(moduleType, recordId, entityId, data) {
     const collection = await getCollection();
-    
+
     // 1. Format the data into a meaningful text chunk for embedding
     let documentText = `Module: ${moduleType}\n`;
     if (moduleType === 'leads') {
@@ -81,17 +92,14 @@ export async function queryVectorDb(question, entityId) {
     const collection = await getCollection();
 
     // 1. Create an embedding for the user's question
-    const queryEmbedding = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: question,
-    });
+    const queryEmbedding = await embedText(question);
 
-    // 2. Query Chroma for the top 5 most relevant documents
-    // We filter by `entityId` to ensure we only get context for the customer in question.
+    // 2. Query Chroma for the top 5 most relevant documents using embeddings
+    // This avoids relying on the Chroma default embedding function in serverless envs
     const results = await collection.query({
-        queryEmbeddings: [queryEmbedding.data[0].embedding],
-        nResults: 5, // Get the top 5 most relevant chunks
-        where: { "entityId": entityId } // **CRITICAL**: Filter for the correct entity
+        queryEmbeddings: [queryEmbedding],
+        nResults: 5,
+        where: { entityId }
     });
 
     if (!results.documents || results.documents.length === 0 || results.documents[0].length === 0) {
