@@ -1,30 +1,59 @@
-import { ChromaClient } from 'chromadb';
+import { ChromaClient, type Collection } from 'chromadb';
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 
-// Initialize clients using runtime env (works on Vercel)
+// Runtime configuration
 const CHROMA_PATH = env.CHROMA_URL || 'http://localhost:8000';
 const OPENAI_KEY = env.OPENAI_API_KEY;
+const CONFIGURED_BACKEND = (env.VECTOR_BACKEND || 'auto').toLowerCase();
 
-const chromaClient = new ChromaClient({ path: CHROMA_PATH });
+// OpenAI (shared)
 const openai = new OpenAI({ apiKey: OPENAI_KEY });
 
+// Chroma client (lazy)
+let chromaClient: ChromaClient | null = null;
+let chromaCollection: Collection | null = null;
+
+// Active backend state
+let ACTIVE_BACKEND: 'chroma' | 'memory' = CONFIGURED_BACKEND === 'memory' ? 'memory' : 'memory';
+
 const COLLECTION_NAME = 'zoho_crm_context';
+
+// In-memory fallback store (id -> { embedding, metadata, document })
+const memoryStore = new Map<string, { embedding: number[]; metadata: any; document: string }>();
+
+export function getActiveVectorBackend() {
+	return ACTIVE_BACKEND;
+}
 
 /**
  * A helper function to get or create a ChromaDB collection.
  * @returns {Promise<import('chromadb').Collection>}
  */
 async function getCollection() {
-    try {
-        // Provide a NOOP embedding function to fully bypass Chroma's DefaultEmbeddingFunction
-        // in serverless environments. We always pass `embeddings` explicitly on upsert/query.
-        const NOOP: any = { generate: async () => { throw new Error('NOOP embedding function used. All operations must provide embeddings explicitly.'); } };
-        return await chromaClient.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: NOOP });
-    } catch (error) {
-        console.error('Error getting or creating Chroma collection:', error);
-        throw error;
+  // Respect configured backend
+  if (CONFIGURED_BACKEND === 'memory') {
+    ACTIVE_BACKEND = 'memory';
+    throw new Error('VECTOR_BACKEND=memory');
+  }
+
+  try {
+    if (!chromaClient) chromaClient = new ChromaClient({ path: CHROMA_PATH });
+    // Provide a NOOP embedding function to fully bypass Chroma's DefaultEmbeddingFunction
+    const NOOP: any = { generate: async () => { throw new Error('NOOP embedding function used.'); } };
+    chromaCollection = await chromaClient.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: NOOP });
+    ACTIVE_BACKEND = 'chroma';
+    return chromaCollection;
+  } catch (error) {
+    // Fallback to memory if auto
+    if (CONFIGURED_BACKEND === 'auto') {
+      ACTIVE_BACKEND = 'memory';
+      console.warn('Chroma unreachable, falling back to in-memory vectors:', (error as any)?.message || error);
+      throw new Error('FALLBACK_TO_MEMORY');
     }
+    console.error('Error getting or creating Chroma collection:', error);
+    throw error;
+  }
 }
 
 
@@ -48,41 +77,41 @@ async function getCollection() {
  * @param {object} data - The full data object from the webhook.
  */
 export async function upsertToVectorDb(moduleType, recordId, entityId, data) {
+  // 1. Format the data into a meaningful text chunk for embedding
+  let documentText = `Module: ${moduleType}\n`;
+  if (moduleType === 'leads') {
+    documentText += `Lead: ${data.Lead_Name}, Company: ${data.Company}, Status: ${data.Lead_Status}, Email: ${data.Email}`;
+  } else if (moduleType === 'notes') {
+    documentText += `Note: ${data.Note_Title} - ${data.Note_Content}`;
+  } else if (moduleType === 'emails') {
+    documentText += `Email Subject: ${data.Subject}\nFrom: ${data.From}\nTo: ${data.To}\nContent: ${data.Content}`;
+  } else {
+    documentText += JSON.stringify(data);
+  }
+
+  // 2. Generate embedding using OpenAI
+  const embedding = await embedText(documentText);
+
+  // Try Chroma; if not available and auto, persist to memory
+  try {
     const collection = await getCollection();
-
-    // 1. Format the data into a meaningful text chunk for embedding
-    let documentText = `Module: ${moduleType}\n`;
-    if (moduleType === 'leads') {
-        documentText += `Lead: ${data.Lead_Name}, Company: ${data.Company}, Status: ${data.Lead_Status}, Email: ${data.Email}`;
-    } else if (moduleType === 'notes') {
-        documentText += `Note: ${data.Note_Title} - ${data.Note_Content}`;
-    } else if (moduleType === 'emails') {
-        documentText += `Email Subject: ${data.Subject}\nFrom: ${data.From}\nTo: ${data.To}\nContent: ${data.Content}`;
-    } else {
-        // Generic fallback for other modules like Deals, Projects
-        documentText += JSON.stringify(data);
-    }
-
-    // 2. Generate embedding using OpenAI
-    const embeddingResponse = await openai.embeddings.create({
-        model: "text-embedding-3-small", // Cost-effective and powerful
-        input: documentText,
-    });
-    const embedding = embeddingResponse.data[0].embedding;
-
-    // 3. Upsert into ChromaDB
     await collection.upsert({
-        ids: [`${moduleType}-${recordId}`], // Create a unique ID for the chunk
-        embeddings: [embedding],
-        metadatas: [{
-            module: moduleType,
-            entityId: entityId, // Used for filtering
-            timestamp: new Date().toISOString()
-        }],
-        documents: [documentText] // Store the original text for context
+      ids: [`${moduleType}-${recordId}`],
+      embeddings: [embedding],
+      metadatas: [{ module: moduleType, entityId, timestamp: new Date().toISOString() }],
+      documents: [documentText]
     });
+    ACTIVE_BACKEND = 'chroma';
+  } catch (e: any) {
+    if (CONFIGURED_BACKEND === 'auto' && (e?.message === 'FALLBACK_TO_MEMORY' || e?.message === 'VECTOR_BACKEND=memory')) {
+      memoryStore.set(`${moduleType}-${recordId}`, { embedding, metadata: { module: moduleType, entityId, timestamp: new Date().toISOString() }, document: documentText });
+      ACTIVE_BACKEND = 'memory';
+    } else {
+      throw e;
+    }
+  }
 
-    console.log(`Successfully upserted ${moduleType}-${recordId} into Vector DB.`);
+  console.log(`Successfully upserted ${moduleType}-${recordId} into Vector DB (backend=${ACTIVE_BACKEND}).`);
 }
 
 /**
@@ -92,23 +121,43 @@ export async function upsertToVectorDb(moduleType, recordId, entityId, data) {
  * @returns {Promise<string>} - A formatted string of relevant context.
  */
 export async function queryVectorDb(question, entityId) {
+  // 1) Embed the query
+  const queryEmbedding = await embedText(question);
+
+  // 2) Try Chroma first
+  try {
     const collection = await getCollection();
-
-    // 1. Create an embedding for the user's question
-    const queryEmbedding = await embedText(question);
-
-    // 2. Query Chroma for the top 5 most relevant documents using embeddings
-    // This avoids relying on the Chroma default embedding function in serverless envs
     const results = await collection.query({
-        queryEmbeddings: [queryEmbedding],
-        nResults: 5,
-        where: { entityId }
+      queryEmbeddings: [queryEmbedding],
+      nResults: 5,
+      where: { entityId }
     });
 
-    if (!results.documents || results.documents.length === 0 || results.documents[0].length === 0) {
-        return "No relevant context found in the database.";
+    if (!results.documents || !results.documents[0] || results.documents[0].length === 0) {
+      return 'No relevant context found in the database.';
     }
+    return 'Relevant Context:\n' + results.documents[0].join('\n---\n');
+  } catch (e: any) {
+    if (CONFIGURED_BACKEND === 'auto' && (e?.message === 'FALLBACK_TO_MEMORY' || e?.message === 'VECTOR_BACKEND=memory')) {
+      // 3) Memory fallback: cosine similarity over memoryStore
+      const entries = Array.from(memoryStore.entries()).filter(([, v]) => v.metadata?.entityId === entityId);
+      if (entries.length === 0) return 'No relevant context found in the database.';
 
-    // 3. Format the results into a clean string for the LLM prompt
-    return "Relevant Context:\n" + results.documents[0].join("\n---\n");
+      function cosine(a: number[], b: number[]) {
+        const dot = a.reduce((s, x, i) => s + x * b[i], 0);
+        const magA = Math.sqrt(a.reduce((s, x) => s + x * x, 0));
+        const magB = Math.sqrt(b.reduce((s, x) => s + x * x, 0));
+        return dot / (magA * magB);
+      }
+
+      const scored = entries
+        .map(([, v]) => ({ ...v, score: cosine(queryEmbedding, v.embedding) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(v => v.document);
+
+      return 'Relevant Context:\n' + scored.join('\n---\n');
+    }
+    throw e;
+  }
 }
