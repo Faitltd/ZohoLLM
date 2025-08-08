@@ -21,7 +21,7 @@ method: 'POST',
 headers: {
 'Content-Type': 'application/json'
 },
-body: JSON.stringify({ message, searchName })
+body: JSON.stringify({ message, entity: searchName })
 });
 
 const data = await response.json();
