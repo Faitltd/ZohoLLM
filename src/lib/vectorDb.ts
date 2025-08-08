@@ -17,9 +17,12 @@ const COLLECTION_NAME = 'zoho_crm_context';
  */
 async function getCollection() {
     try {
-        return await chromaClient.getOrCreateCollection({ name: COLLECTION_NAME });
+        // Provide a NOOP embedding function to fully bypass Chroma's DefaultEmbeddingFunction
+        // in serverless environments. We always pass `embeddings` explicitly on upsert/query.
+        const NOOP: any = { generate: async () => { throw new Error('NOOP embedding function used. All operations must provide embeddings explicitly.'); } };
+        return await chromaClient.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: NOOP });
     } catch (error) {
-        console.error("Error getting or creating Chroma collection:", error);
+        console.error('Error getting or creating Chroma collection:', error);
         throw error;
     }
 }
