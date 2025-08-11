@@ -12,7 +12,7 @@ export const GET: RequestHandler = async () => {
   if (configured !== 'memory') {
     try {
       const path = env.CHROMA_URL || 'http://localhost:8000';
-      const client = new ChromaClient({ path });
+      const client = new ChromaClient({ path, fetchOptions: { headers: { 'x-fait-key': process.env.CHROMA_SHARED_KEY ?? '' } } });
       const collections = await client.listCollections();
       health.chroma = { ok: true, url: path, collections_count: collections.length };
     } catch (e: any) {
