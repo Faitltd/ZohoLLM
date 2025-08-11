@@ -47,3 +47,18 @@ export async function query(collectionId: string, payload: {
     body: JSON.stringify(payload)
   });
 }
+
+
+// Debug/inspection: list items in a collection
+export async function getDocs(collectionId: string, payload: {
+  ids?: string[];
+  where?: Record<string, any>;
+  limit?: number;
+  offset?: number;
+  include?: string[]; // e.g., ["metadatas","documents","embeddings","uris"]
+}) {
+  return request(`/api/v1/collections/${collectionId}/get`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}

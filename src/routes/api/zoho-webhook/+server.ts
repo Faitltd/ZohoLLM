@@ -16,8 +16,12 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     const result = await upsertToVectorDb({ entity, payload });
-    // Best-effort directory indexing (non-fatal on error)
-    try { await ensureDirectoryEntry(entity, payload); } catch {}
+    // Best-effort directory indexing (log errors for visibility)
+    try {
+      await ensureDirectoryEntry(entity, payload);
+    } catch (e: any) {
+      console.error('directory upsert failed:', e?.message || String(e));
+    }
     return json(result);
   } catch (e: any) {
     return json({ error: 'Internal server error', details: e?.message ?? String(e) }, { status: 500 });
