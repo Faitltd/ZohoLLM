@@ -1,32 +1,32 @@
 export const config = { runtime: "nodejs22.x" } as const;
-import { env } from "$env/dynamic/private";
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { ChromaClient } from "chromadb";
-import { getActiveVectorBackend } from "$lib/vectorDb";
+import { env } from "$env/dynamic/private";
 
 export const GET: RequestHandler = async () => {
-  const configured = (env.VECTOR_BACKEND || "auto").toLowerCase();
-  const active = getActiveVectorBackend();
-  const health: any = { configured_backend: configured, active_backend: active };
+  const configured = (env.VECTOR_BACKEND || 'auto').toLowerCase();
+  const health: any = { configured_backend: configured, active_backend: configured };
 
-  if (configured !== "memory") {
+  if (configured !== 'memory') {
     try {
-      const path = env.CHROMA_URL!;
-      const client = new ChromaClient({
-        path,
-        fetchOptions: { headers: { "x-fait-key": env.CHROMA_SHARED_KEY ?? "" } }
+      const url = `${env.CHROMA_URL}/api/v1/collections`;
+      const r = await fetch(url, {
+        headers: { "x-fait-key": env.CHROMA_SHARED_KEY ?? "" }
       });
-      const collections = await client.listCollections();
-      health.chroma = { ok: true, url: path, collections_count: collections.length };
+      const text = await r.text();
+      if (!r.ok) throw new Error(`chroma ${r.status}: ${text}`);
+      const cols = JSON.parse(text);
+      health.active_backend = 'chroma';
+      health.chroma = { ok: true, url: env.CHROMA_URL, collections_count: cols.length };
     } catch (e: any) {
+      health.active_backend = 'memory';
       health.chroma = { ok: false, error: e?.message || String(e) };
     }
   } else {
-    health.chroma = { ok: false, reason: "Configured to memory" };
+    health.active_backend = 'memory';
+    health.chroma = { ok: false, reason: 'Configured to memory' };
   }
 
   return json(health);
 };
-
