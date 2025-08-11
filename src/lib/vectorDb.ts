@@ -1,16 +1,14 @@
 import { env } from "$env/dynamic/private";
-import { getOrCreateCollectionByName, upsertDocs, query as chromaQuery } from "./chromaHttp";
+import { getOrCreateCollectionByName, upsertDocs, query as queryCollection } from "$lib/chromaHttp";
 
-export type VectorBackend = "auto" | "memory" | "chroma";
-
-/** Which backend should we use at runtime */
-export function getActiveVectorBackend(): VectorBackend {
-  const configured = (env.VECTOR_BACKEND || "auto").toLowerCase() as VectorBackend;
-  // Our "auto" resolves to chroma in prod; memory only if explicitly set
-  return configured === "memory" ? "memory" : "chroma";
+/** Which backend is active (memory|chroma|auto) */
+export function getActiveVectorBackend(): "memory" | "chroma" | "auto" {
+  const v = (env.VECTOR_BACKEND || "auto").toLowerCase();
+  if (v === "memory" || v === "chroma") return v as any;
+  return "auto";
 }
 
-/** OpenAI embeddings helper */
+/** OpenAI Embeddings helper */
 async function embed(texts: string[]): Promise<number[][]> {
   const r = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
@@ -25,18 +23,7 @@ async function embed(texts: string[]): Promise<number[][]> {
   return j.data.map((d: any) => d.embedding as number[]);
 }
 
-/** Query for topK docs for an entity */
-export async function queryVectorDb(params: { entity: string; query: string; topK?: number }) {
-  if (getActiveVectorBackend() === "memory") {
-    return { ids: [[]], distances: [[]], documents: [[]], metadatas: [[]] };
-  }
-  const { entity, query, topK = 5 } = params;
-  const col = await getOrCreateCollectionByName(`entity_${entity}`);
-  const [qe] = await embed([query]);
-  return chromaQuery(col.id, { query_embeddings: [qe], n_results: topK });
-}
-
-/** Upsert Zoho payload into the entity collection */
+/** Upsert one payload into the entity_<id> collection */
 export async function upsertToVectorDb(args: { entity: string; payload: any }) {
   const { entity, payload } = args;
   if (!entity) throw new Error("missing entity id");
@@ -80,5 +67,13 @@ export async function upsertToVectorDb(args: { entity: string; payload: any }) {
     embeddings: [embedding]
   });
 
-  return { ok: true,
+  return { ok: true, entity, id };
+}
 
+/** Query topK for an entity collection */
+export async function queryVectorDb(params: { entity: string; query: string; topK?: number }) {
+  const { entity, query, topK = 5 } = params;
+  const col = await getOrCreateCollectionByName(`entity_${entity}`);
+  const [q] = await embed([query]);
+  return queryCollection(col.id, { query_embeddings: [q], n_results: topK });
+}
