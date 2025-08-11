@@ -1,4 +1,4 @@
-import { queryVectorDb } from '$lib/vectorDb.js';
+import { queryVectorDb } from '$lib/vectorDb';
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
