@@ -3,9 +3,10 @@ import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 
 // Runtime configuration
-const CHROMA_PATH = env.CHROMA_URL || 'http://localhost:8000';
-const OPENAI_KEY = env.OPENAI_API_KEY;
-const CONFIGURED_BACKEND = (env.VECTOR_BACKEND || 'auto').toLowerCase();
+const CHROMA_PATH = env.CHROMA_URL || process.env.CHROMA_URL || 'http://localhost:8000';
+const CHROMA_SHARED_KEY = env.CHROMA_SHARED_KEY || process.env.CHROMA_SHARED_KEY || '';
+const OPENAI_KEY = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+const CONFIGURED_BACKEND = (env.VECTOR_BACKEND || process.env.VECTOR_BACKEND || 'auto').toLowerCase();
 
 // OpenAI (shared)
 const openai = new OpenAI({ apiKey: OPENAI_KEY });
@@ -14,6 +15,15 @@ const openai = new OpenAI({ apiKey: OPENAI_KEY });
 let chromaClient: ChromaClient | null = null;
 let chromaCollection: Collection | null = null;
 
+export function getChroma(): ChromaClient {
+	if (!chromaClient) {
+		chromaClient = new ChromaClient({
+			path: CHROMA_PATH,
+			fetchOptions: { headers: { 'x-fait-key': CHROMA_SHARED_KEY } }
+		});
+	}
+	return chromaClient;
+}
 // Active backend state
 let ACTIVE_BACKEND: 'chroma' | 'memory' = CONFIGURED_BACKEND === 'memory' ? 'memory' : 'memory';
 
@@ -38,7 +48,11 @@ async function getCollection() {
   }
 
   try {
+<<<<<<< HEAD
+    if (!chromaClient) chromaClient = getChroma();
+=======
     if (!chromaClient) chromaClient = new ChromaClient({ path: CHROMA_PATH });
+>>>>>>> origin/main
     // Provide a NOOP embedding function to fully bypass Chroma's DefaultEmbeddingFunction
     const NOOP: any = { generate: async () => { throw new Error('NOOP embedding function used.'); } };
     chromaCollection = await chromaClient.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: NOOP });
