@@ -27,7 +27,6 @@
 		"vite": "^7.0.4"
 	},
 	"dependencies": {
-		"chromadb": "^3.0.10",
 		"dotenv": "^17.2.1",
 		"node-fetch": "^3.3.2",
 		"openai": "^5.12.1"
