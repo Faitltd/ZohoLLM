@@ -9,7 +9,7 @@ async function embed(texts: string[]): Promise<number[][]> {
   const r = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
-      "authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      authorization: `Bearer ${env.OPENAI_API_KEY}`,
       "content-type": "application/json"
     },
     body: JSON.stringify({ model: "text-embedding-3-small", input: texts })
@@ -49,4 +49,3 @@ export const POST: RequestHandler = async ({ request }) => {
     metadatas: res.metadatas?.[0] ?? []
   });
 };
-
