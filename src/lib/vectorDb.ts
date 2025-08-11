@@ -57,3 +57,66 @@ export async function queryVectorDb(params: { entity: string; query: string; top
   };
 }
 
+// --- add below existing code in src/lib/vectorDb.ts ---
+
+export async function upsertToVectorDb(payload: any) {
+  // Decide the owning entity (Notes use Parent_Id)
+  const entity =
+    payload?.Parent_Id ||
+    payload?.entity ||
+    payload?.id ||
+    payload?.Lead_Id ||
+    payload?.Account_Id;
+
+  if (!entity) {
+    throw new Error("Cannot determine entity id for upsert");
+  }
+
+  // Build a human-readable doc string from common Zoho fields
+  const chunks: string[] = [];
+  if (payload.Note_Title || payload.Note_Content) {
+    if (payload.Note_Title) chunks.push(`Title: ${payload.Note_Title}`);
+    if (payload.Note_Content) chunks.push(`Content: ${payload.Note_Content}`);
+  } else {
+    // Lead/Deal/Account style
+    const fields = [
+      ["Lead_Name", payload.Lead_Name],
+      ["Company", payload.Company],
+      ["Lead_Status", payload.Lead_Status],
+      ["Email", payload.Email],
+      ["Phone", payload.Phone],
+      ["Description", payload.Description]
+    ];
+    for (const [k, v] of fields) if (v) chunks.push(`${k}: ${v}`);
+    // fallback: include all keys if we had nothing
+    if (chunks.length === 0) {
+      chunks.push(
+        Object.entries(payload)
+          .map(([k, v]) => `${k}: ${v as string}`)
+          .join("\n")
+      );
+    }
+  }
+  const doc = chunks.join("\n").trim();
+  if (!doc) throw new Error("Nothing to upsert (empty document)");
+
+  // Get/create collection for the entity
+  const client = getChroma(); // your existing helper that includes the x-fait-key header
+  const collection = await client.getOrCreateCollection({
+    name: `entity_${entity}`
+  });
+
+  // Embed and upsert
+  const [embedding] = await embed([doc]); // your existing OpenAI embed helper
+  const id = String(payload.id ?? `${Date.now()}`);
+
+  await collection.upsert({
+    ids: [id],
+    documents: [doc],
+    metadatas: [payload],
+    embeddings: [embedding]
+  });
+
+  return { ok: true, entity, id };
+}
+
