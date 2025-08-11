@@ -17,7 +17,6 @@ export function getChroma(): ChromaClient {
   return chromaClient;
 }
 
-import { env } from "$env/dynamic/private";
 
 async function embed(texts: string[]): Promise<number[][]> {
   const r = await fetch("https://api.openai.com/v1/embeddings", {
