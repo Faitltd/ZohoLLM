@@ -1,69 +1,52 @@
-import { queryVectorDb } from '$lib/vectorDb';
-import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
-import type { RequestHandler } from './$types';
+export const runtime = "nodejs";
+
+import { json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
+import { ChromaClient } from "chromadb";
+import { env } from "$env/dynamic/private";
+
+async function embed(texts: string[]): Promise<number[][]> {
+  const r = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ model: "text-embedding-3-small", input: texts })
+  });
+  if (!r.ok) throw new Error(`OpenAI embeddings failed: ${r.status}`);
+  const j = await r.json();
+  return j.data.map((d: any) => d.embedding as number[]);
+}
 
 export const POST: RequestHandler = async ({ request }) => {
-    try {
-        const { message, entity } = await request.json();
-        
-        if (!message || !entity) {
-            return json({ error: 'Message and entity are required' }, { status: 400 });
-        }
-        
-        console.log(`Chat query: "${message}" for entity: ${entity}`);
-        
-        // Get RELEVANT context from the vector DB
-        const context = await queryVectorDb(message, entity);
-        console.log('Retrieved context:', context);
-        
-        // Create a prompt for the LLM
-        const systemPrompt = `You are an expert CRM assistant. Answer the user's question based *only* on the following context provided. If the context doesn't contain the answer, say that you don't have enough information.
+  const { message, entity, topK = 5 } = await request.json();
 
-Context:
----
-${context}
----
-`;
+  if (!entity || typeof entity !== "string") {
+    return json({ error: "Missing 'entity' id" }, { status: 400 });
+  }
+  if (!message || typeof message !== "string") {
+    return json({ error: "Missing 'message'" }, { status: 400 });
+  }
 
-        // Check if we have Anthropic API key
-        if (!env.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY === 'your-anthropic-api-key-here') {
-            return json({
-                response: `Based on the context I found:\n\n${context}\n\nNote: Anthropic API key not configured, so I can't provide an AI-generated response. Please add your Anthropic API key to the .env file.`
-            });
-        }
+  const client = new ChromaClient({
+    path: env.CHROMA_URL!,
+    fetchOptions: { headers: { "x-fait-key": env.CHROMA_SHARED_KEY ?? "" } }
+  });
 
-        // Send to Anthropic API
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': env.ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-5-sonnet-20241022',
-                system: systemPrompt,
-                messages: [{
-                    role: 'user',
-                    content: message
-                }],
-                max_tokens: 1000
-            })
-        });
-        
-        const aiResponse = await response.json();
-        
-        if (aiResponse.content && aiResponse.content.length > 0) {
-            return json({
-                response: aiResponse.content[0].text
-            });
-        } else {
-            console.error("Error from Anthropic API:", aiResponse);
-            return json({ error: "Sorry, I encountered an error with the AI service." }, { status: 500 });
-        }
-    } catch (error) {
-        console.error('Error in chat API:', error);
-        return json({ error: 'Internal server error', details: (error as Error).message }, { status: 500 });
-    }
+  const name = `entity_${entity}`;
+  const col = await client.getOrCreateCollection({ name });
+
+  const [q] = await embed([message]);
+  const res = await col.query({ query_embeddings: [q], nResults: topK });
+
+  return json({
+    entity,
+    topK,
+    ids: res.ids?.[0] ?? [],
+    distances: res.distances?.[0] ?? [],
+    documents: res.documents?.[0] ?? [],
+    metadatas: res.metadatas?.[0] ?? []
+  });
 };
+
