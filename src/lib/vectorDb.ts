@@ -1,5 +1,6 @@
 import { env } from "$env/dynamic/private";
 import { getOrCreateCollectionByName, upsertDocs, query as queryCollection } from "$lib/chromaHttp";
+import { toCollectionName } from "$lib/personKey";
 
 /** Which backend is active (memory|chroma|auto) */
 export function getActiveVectorBackend(): "memory" | "chroma" | "auto" {
@@ -56,7 +57,8 @@ export async function upsertToVectorDb(args: { entity: string; payload: any }) {
   if (!doc) throw new Error("Nothing to upsert (empty document)");
 
   // Create/get collection and upsert via HTTP helper
-  const col = await getOrCreateCollectionByName(`entity_${entity}`);
+  const collectionName = toCollectionName(entity);
+  const col = await getOrCreateCollectionByName(collectionName);
   const [embedding] = await embed([doc]);
   const id = String(payload.id ?? `${Date.now()}`);
 
@@ -73,7 +75,8 @@ export async function upsertToVectorDb(args: { entity: string; payload: any }) {
 /** Query topK for an entity collection */
 export async function queryVectorDb(params: { entity: string; query: string; topK?: number }) {
   const { entity, query, topK = 5 } = params;
-  const col = await getOrCreateCollectionByName(`entity_${entity}`);
+  const collectionName = toCollectionName(entity);
+  const col = await getOrCreateCollectionByName(collectionName);
   const [q] = await embed([query]);
   return queryCollection(col.id, { query_embeddings: [q], n_results: topK });
 }
