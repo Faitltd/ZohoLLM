@@ -24,7 +24,6 @@ export function getChroma(): ChromaClient {
 	}
 	return chromaClient;
 }
-
 // Active backend state
 let ACTIVE_BACKEND: 'chroma' | 'memory' = CONFIGURED_BACKEND === 'memory' ? 'memory' : 'memory';
 
@@ -49,7 +48,11 @@ async function getCollection() {
   }
 
   try {
+<<<<<<< HEAD
     if (!chromaClient) chromaClient = getChroma();
+=======
+    if (!chromaClient) chromaClient = new ChromaClient({ path: CHROMA_PATH });
+>>>>>>> origin/main
     // Provide a NOOP embedding function to fully bypass Chroma's DefaultEmbeddingFunction
     const NOOP: any = { generate: async () => { throw new Error('NOOP embedding function used.'); } };
     chromaCollection = await chromaClient.getOrCreateCollection({ name: COLLECTION_NAME, embeddingFunction: NOOP });
