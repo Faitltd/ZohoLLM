@@ -91,12 +91,15 @@
       <div style="display:grid; gap:.75rem;">
         {#each chatDocs as d}
           <article style="border:1px solid #eee; border-radius:8px; padding:.75rem;">
-            <pre style="white-space:pre-wrap; margin:0;">{d.text}</pre>
             {#if d.meta}
-              <div style="font-size:.8rem; color:#666; margin-top:.25rem;">
-                {d.meta.module ? `Module: ${d.meta.module} • ` : ''}{d.meta.id ? `ID: ${d.meta.id}` : ''}
-              </div>
+              <p class="mt-2 text-sm" style="opacity:0.8; margin:0.25rem 0 0;">
+                <strong>Module:</strong> {d.meta?.Module ?? d.meta?.module ?? '—'}
+                {#if d.meta?.Stage} • <strong>Stage:</strong> {d.meta.Stage}{/if}
+                {#if d.meta?.Amount} • <strong>Amount:</strong> {d.meta.Amount}{/if}
+                {#if d.meta?.id} • <strong>ID:</strong> {d.meta.id}{/if}
+              </p>
             {/if}
+            <pre class="mt-2 whitespace-pre-wrap text-sm leading-relaxed" style="margin:0;">{d.text}</pre>
           </article>
         {/each}
       </div>
