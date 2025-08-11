@@ -1,4 +1,4 @@
-import { upsertToVectorDb } from '$lib/vectorDb.js';
+import { upsertToVectorDb } from '$lib/vectorDb';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
