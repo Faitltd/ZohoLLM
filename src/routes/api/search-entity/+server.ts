@@ -67,7 +67,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const digitsQ = normPhoneDigits(q);
     const qnorm = norm(q);
     if (digitsQ.length >= 7 || qnorm.length >= 2) {
-      const dump = await getDocs(dir.id, { limit: 500 });
+      const dump = await getDocs(dir.id, { limit: 500, include: ['metadatas','documents'] });
       const dIds = dump.ids ?? [];
       const dDocs = dump.documents ?? [];
       const dMeta = dump.metadatas ?? [];
