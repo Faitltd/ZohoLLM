@@ -6,6 +6,24 @@
   let loadingChat = false;
   let chatDocs: Array<{ text: string; meta?: any }> = [];
   let selectedEntity = '';
+  let selected: any = null;     // set when clicking a match
+  let question = "";
+  let answer = "";
+  let sources: Array<{ id: string; meta: any; text: string }> = [];
+
+  async function ask() {
+    if (!selected?.entity || !question) return;
+    answer = "";
+    sources = [];
+    const r = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ entity: selected.entity, question, topK: 6 })
+    });
+    const j = await r.json();
+    answer = j.answer || j.error || "(no answer)";
+    sources = j.sources || [];
+  }
 
   async function doSearch(e: Event) {
     e.preventDefault();
@@ -26,6 +44,7 @@
     selectedEntity = entity;
     loadingChat = true;
     chatDocs = [];
+    selected = { entity };
     try {
       const r = await fetch('/api/chat', {
         method: 'POST',
@@ -82,6 +101,44 @@
   {/if}
 
   {#if selectedEntity}
+
+    <!-- Chat box -->
+    <div class="mt-4 p-3 rounded border">
+      <form on:submit|preventDefault={ask}>
+        <input
+          class="w-full p-2 border rounded"
+          placeholder="Ask a question about this client…"
+          bind:value={question}
+        />
+        <button class="mt-2 px-3 py-1 rounded border" disabled={!question}>
+          Ask
+        </button>
+      </form>
+
+      {#if answer}
+        <div class="mt-4">
+          <h3 class="font-semibold mb-1">Answer</h3>
+          <p class="leading-relaxed whitespace-pre-wrap">{answer}</p>
+
+          <details class="mt-3">
+            <summary>Sources</summary>
+            <ol class="list-decimal ml-5 mt-2 space-y-2">
+              {#each sources as s, i}
+                <li>
+                  <div class="text-xs opacity-80">
+                    <b>ID:</b> {s.id}
+                    {#if s.meta?.Module} • <b>Module:</b> {s.meta.Module}{/if}
+                    {#if s.meta?.Stage} • <b>Stage:</b> {s.meta.Stage}{/if}
+                  </div>
+                  <pre class="whitespace-pre-wrap text-sm mt-1">{s.text}</pre>
+                </li>
+              {/each}
+            </ol>
+          </details>
+        </div>
+      {/if}
+    </div>
+
     <h2 style="margin-top:1.5rem;">Context for {selectedEntity}</h2>
     {#if loadingChat}
       <div>Loading context…</div>
