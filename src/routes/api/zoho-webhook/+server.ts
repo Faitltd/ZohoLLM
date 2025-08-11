@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { upsertToVectorDb } from '$lib/vectorDb';
+import { ensureDirectoryEntry } from '$lib/directory';
 
 export const config = { runtime: 'nodejs22.x' } as const;
 
@@ -15,6 +16,8 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     const result = await upsertToVectorDb({ entity, payload });
+    // Best-effort directory indexing (non-fatal on error)
+    try { await ensureDirectoryEntry(entity, payload); } catch {}
     return json(result);
   } catch (e: any) {
     return json({ error: 'Internal server error', details: e?.message ?? String(e) }, { status: 500 });
