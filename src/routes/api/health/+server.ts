@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const config = { runtime: "nodejs" } as const;
 import { env } from "$env/dynamic/private";
 
 import { json } from "@sveltejs/kit";

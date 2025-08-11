@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const config = { runtime: "nodejs" } as const;
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
