@@ -62,10 +62,13 @@ export function pickNameAndCompany(p: any): { name: string; company: string } {
     get(p, 'Name') ||
     get(p, 'Lead_Name') ||
     get(p, 'Contact_Name') ||
+    get(p, 'Deal_Name') ||
+    get(p, 'Project_Name') ||
     [first, last].filter(Boolean).join(' ');
   const company =
     get(p, 'Company') ||
     get(p, 'Account_Name') ||
+    get(p, 'Project_Name') ||
     get(p, 'Organization') ||
     get(p, 'Org') ||
     get(p, 'Vendor_Name') ||

@@ -39,12 +39,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // 4) ensure/update the directory card
     try {
+      // Pass the full payload plus normalized fields so directory can capture all name variants
       await ensureDirectoryEntry(entity, {
+        ...payload,
         name: pk.name,
         company: pk.company,
         email: pk.email,
         phone: pk.phone,
-        address: pk.address
+        address_line: pk.address
       });
     } catch (e: any) {
       console.error('directory upsert failed:', e?.message || String(e));
