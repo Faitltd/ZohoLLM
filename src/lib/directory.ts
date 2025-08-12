@@ -1,5 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { getOrCreateCollectionByName, upsertDocs } from '$lib/chromaHttp';
+import { toCollectionName } from '$lib/personKey';
+
 
 function digitsOnly(s: string) {
   return (s || '').replace(/\D+/g, '');
@@ -80,7 +82,7 @@ export async function ensureDirectoryEntry(entity: string, payload: any) {
     alt_names.length ? `aliases: ${alt_names.join(', ')}` : ''
   ].filter(Boolean).join('\n');
 
-  const col = await getOrCreateCollectionByName('entity_directory');
+  const col = await getOrCreateCollectionByName(toCollectionName('entity_directory'));
   const [embedding] = await embed([doc]);
 
   await upsertDocs(col.id, {
