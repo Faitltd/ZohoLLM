@@ -3,7 +3,7 @@ export const config = { runtime: 'nodejs22.x' } as const;
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
-aimport { toCollectionName } from "$lib/personKey";
+import { toCollectionName } from "$lib/personKey";
 import { getOrCreateCollectionByName, query as httpQuery } from "$lib/chromaHttp";
 
 async function embed(texts: string[]): Promise<number[][]> {

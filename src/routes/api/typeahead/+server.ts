@@ -47,7 +47,10 @@ export const GET: RequestHandler = async ({ url }) => {
     // light fuzz
     if (!score && q.length >= 3 && name.split(' ').some(tok => tok.startsWith(q))) { score += 5; hits.push('prefix'); }
 
-    return { score, hits, entity: m.entity, name: m.name || '', email: m.email || '', company: m.company || '', phone: m.phone || '' };
+    const modules: Record<string, number> = {};
+    // optionally, we could fetch module info; for now, leave empty counts
+
+    return { score, hits, entity: m.entity, name: m.name || '', email: m.email || '', company: m.company || '', phone: m.phone || '', modules };
   })
   .filter(r => r.score > 0)
   .sort((a,b) => b.score - a.score)
