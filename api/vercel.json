@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/admin/daily-sync",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
+
