@@ -6,6 +6,8 @@ import { docFromContact } from './contact';
 import { docFromLead } from './lead';
 import { docFromProject } from './project';
 import { docFromWorkDriveFile } from './workdrive';
+import { docFromEmail } from './email';
+import { docFromMeeting } from './meeting';
 
 export function buildDoc(moduleName: string, payload: any): string {
   const m = (moduleName || '').toLowerCase();
@@ -17,6 +19,8 @@ export function buildDoc(moduleName: string, payload: any): string {
     if (m === 'contacts') return docFromContact(payload);
     if (m === 'leads') return docFromLead(payload);
     if (m === 'projects') return docFromProject(payload);
+    if (m === 'emails') return docFromEmail(payload);
+    if (m === 'meetings' || m === 'events') return docFromMeeting(payload);
   } catch {}
   // fallback: structured dump
   const header = moduleName ? `Module: ${moduleName}\n` : '';
