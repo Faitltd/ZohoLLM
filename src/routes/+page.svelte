@@ -15,9 +15,21 @@
 
   async function searchNow() {
     if (!term.trim()) { results = []; return; }
-    const r = await fetch(`/api/typeahead?term=${encodeURIComponent(term)}`);
-    const data = await r.json();
-    results = data.matches || [];
+    try {
+      const r = await fetch(`/api/typeahead?term=${encodeURIComponent(term)}`);
+      if (r.ok) {
+        const data = await r.json();
+        results = data.matches || [];
+        return;
+      }
+      // Fallback if typeahead route not available in deployment
+      const r2 = await fetch(`/api/search-entity?term=${encodeURIComponent(term)}&k=10`);
+      const data2 = await r2.json();
+      results = data2.matches || [];
+    } catch {
+      // Final fallback: empty results
+      results = [];
+    }
   }
 
   function onType(e: any) {
