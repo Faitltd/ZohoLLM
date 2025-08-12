@@ -49,6 +49,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const qDigits = digitsOnly(term);
 
     function rowMatches(md: any, doc: string) {
+      const aliases = Array.isArray(md.alt_names) ? md.alt_names.map((s: string) => s.toLowerCase()) : [];
       const hay = [
         toLower(md.name),
         toLower(md.company),
@@ -56,7 +57,8 @@ export const GET: RequestHandler = async ({ url }) => {
         toLower(md.address_line),
         toLower(md.phones_joined),
         toLower(md.phone_digits),
-        toLower(doc)
+        toLower(doc),
+        ...aliases
       ];
       const textHit = tokens.length > 0 && tokens.every(t => hay.some(h => h.includes(t)));
       const phoneHit = !!qDigits && (md.phone_digits || '').includes(qDigits);
