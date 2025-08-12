@@ -102,19 +102,33 @@ export const POST: RequestHandler = async ({ request }) => {
     if (!blended.length) {
       return json({
         answer: 'I don’t have facts yet for this client. Save a Deal/Lead/Note/Call/Task in Zoho and try again.',
-        sources: []
+        sources: [],
+        sourceDetails: []
       });
     }
 
     // 4) structured-first shortcut
     const struct = tryStructuredAnswer(question, blended.map(b => b.meta ?? {}));
     if (struct && (struct as any).answer) {
-      return json({ answer: (struct as any).answer, sources: (struct as any).sources || [] });
+      const sourceDetails = blended.map(b => ({
+        module: b.meta?.module || 'Record',
+        id: b.meta?.id || b.id,
+        text: b.doc,
+        meta: b.meta || null
+      }));
+      return json({ answer: (struct as any).answer, sources: (struct as any).sources || [], sourceDetails });
     }
     if (struct && (struct as any).missing) {
+      const sourceDetails = blended.map(b => ({
+        module: b.meta?.module || 'Record',
+        id: b.meta?.id || b.id,
+        text: b.doc,
+        meta: b.meta || null
+      }));
       return json({
         answer: `I don't see ${(struct as any).missing.join(', ')} for this client. Please capture it in Zoho and I'll pick it up.`,
-        sources: blended.map(b => `${b.meta?.module || 'Record'} • ID: ${b.meta?.id || b.id}`)
+        sources: blended.map(b => `${b.meta?.module || 'Record'} • ID: ${b.meta?.id || b.id}`),
+        sourceDetails
       });
     }
 
@@ -145,8 +159,14 @@ Be concise. Always include a "Sources" list with module + id used.
     const answer = data?.choices?.[0]?.message?.content ?? '(no answer)';
 
     const sources = blended.map(b => `${b.meta?.module || 'Record'} • ID: ${b.meta?.id || b.id}`);
+    const sourceDetails = blended.map(b => ({
+      module: b.meta?.module || 'Record',
+      id: b.meta?.id || b.id,
+      text: b.doc,
+      meta: b.meta || null
+    }));
 
-    return json({ answer, sources });
+    return json({ answer, sources, sourceDetails });
   } catch (e: any) {
     return json({ error: e?.message || String(e) }, { status: 500 });
   }

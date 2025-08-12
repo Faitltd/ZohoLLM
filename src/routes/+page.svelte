@@ -7,6 +7,7 @@
   let question = '';
   let answer = '';
   let sources: string[] = [];
+  let sourceDetails: Array<{ module: string; id: string; text: string; meta?: any }> = [];
   let loadingAsk = false;
 
   let typingTimer: any;
@@ -43,6 +44,7 @@
     loadingAsk = false;
     answer = data.answer || data.message || '(no answer)';
     sources = data.sources || [];
+    sourceDetails = data.sourceDetails || [];
   }
 </script>
 
@@ -69,11 +71,32 @@
     {#if answer}
       <h3>Answer</h3>
       <pre>{answer}</pre>
-      {#if sources?.length}
-        <details>
-          <summary>Sources</summary>
-          <ul>{#each sources as s}<li>{s}</li>{/each}</ul>
-        </details>
+
+      {#if sourceDetails?.length}
+        <div class="card" style="border:1px solid #333; border-radius:8px; margin-top:8px;">
+          <button type="button" class="card-header" style="width:100%; text-align:left; padding:.5rem .75rem; display:flex; justify-content:space-between; cursor:pointer; background:transparent; border:0;" on:click={(e)=>{const el=(e.currentTarget as HTMLElement).nextElementSibling as HTMLElement; if (el) el.hidden = !el.hidden;}}>
+            <strong>Sources ({sourceDetails.length} items)</strong>
+            <span style="opacity:.7">toggle</span>
+          </button>
+          <div class="card-body" style="padding:.5rem .75rem;" hidden>
+            {#each sourceDetails as s, i}
+              <div class="src" style="border:1px solid #444; border-radius:6px; padding:.5rem; margin:.5rem 0;">
+                <div style="display:flex; align-items:center; gap:.5rem;">
+                  <span class="badge" style="background:#0b5; color:#fff; padding:.1rem .4rem; border-radius:999px; font-size:.75rem;">{s.module}</span>
+                  <a href={`https://crm.zoho.com/crm/org{import.meta.env.VITE_ZOHO_ORG_ID || '0000000'}/tab/${s.module}/${s.id}`} target="_blank" style="font-size:.85rem;">{s.id}</a>
+                  <button on:click={() => navigator.clipboard.writeText(s.text)} style="margin-left:auto; font-size:.75rem;">Copy</button>
+                </div>
+                <div style="opacity:.85; font-size:.9rem; margin-top:.25rem;">
+                  {(s.text || '').slice(0,150)}{(s.text || '').length > 150 ? '...' : ''}
+                </div>
+                <details style="margin-top:.25rem;">
+                  <summary>Show full text</summary>
+                  <pre class="whitespace-pre-wrap">{s.text}</pre>
+                </details>
+              </div>
+            {/each}
+          </div>
+        </div>
       {/if}
     {/if}
   {/if}
