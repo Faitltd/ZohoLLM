@@ -139,15 +139,15 @@ async function embed(texts: string[]): Promise<number[][]> {
 }
 
 /** Upsert one payload into the entity_<id> collection */
-export async function upsertToVectorDb(args: { entity: string; payload: any }) {
+export async function upsertToVectorDb(args: { entity: string; payload: any; doc?: string }) {
   const { entity, payload } = args;
   if (!entity) throw new Error("missing entity id");
   if (!payload) throw new Error("missing payload");
 
-  // Build module-aware doc
+  // Build module-aware doc (or use provided doc override)
   const moduleName = val(args.payload?.module || args.payload?.Module);
-  const doc = buildDocFromPayload(moduleName, payload);
-  if (!doc) throw new Error("Nothing to upsert (empty document)");
+  const built = buildDocFromPayload(moduleName, payload);
+  const doc = (args.doc && args.doc.trim()) ? args.doc : built;
   if (!doc) throw new Error("Nothing to upsert (empty document)");
 
   // Create/get collection and upsert via HTTP helper

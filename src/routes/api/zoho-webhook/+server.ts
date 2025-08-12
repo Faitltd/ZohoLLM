@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { inferPersonKey, guessModule } from '$lib/personKey';
 import { upsertToVectorDb } from '$lib/vectorDb';
 import { ensureDirectoryEntry } from '$lib/directory';
+import { buildDoc } from '$lib/builders';
 
 export const config = { runtime: 'nodejs22.x' } as const;
 
@@ -16,16 +17,11 @@ export const POST: RequestHandler = async ({ request }) => {
     const pk = inferPersonKey(payload);
     const entity = providedEntity || pk.entity;
 
-    // 2) build a readable document for the per-person index
-    const moduleName = guessModule(payload);
-    const docLines = [
-      pk.name && `Name: ${pk.name}`,
-      pk.company && `Company: ${pk.company}`,
-      pk.email && `Email: ${pk.email}`,
-      pk.phone && `Phone: ${pk.phone}`,
-      pk.address && `Address: ${pk.address}`
-    ].filter(Boolean);
-    const doc = docLines.join('\n') || JSON.stringify(payload, null, 2);
+    // 2) determine module and build a clean, module-aware doc
+    const headerModule = request.headers.get('x-zoho-module') || '';
+    const autoModule = guessModule(payload);
+    const moduleName = body.module || body.Module || body.moduleName || headerModule || autoModule || '';
+    const doc = buildDoc(moduleName, payload);
 
     // 3) upsert to the person's collection (safe collection name)
     await upsertToVectorDb({
@@ -37,7 +33,8 @@ export const POST: RequestHandler = async ({ request }) => {
         Email: pk.email,
         Phone: pk.phone,
         Address_Line: pk.address
-      }
+      },
+      doc
     });
 
     // 4) ensure/update the directory card
