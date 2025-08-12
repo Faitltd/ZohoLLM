@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
 import { getOrCreateCollectionByName, getDocs } from '$lib/chromaHttp';
+import { toCollectionName } from '$lib/personKey';
 
 export const config = { runtime: 'nodejs22.x' } as const;
 
@@ -24,7 +25,7 @@ export const GET: RequestHandler = async ({ url }) => {
     doc: dump.documents?.[i] ?? ''
   }));
 
-  const scored = rows.map(r => {
+  const scored = await Promise.all(rows.map(async r => {
     const m: any = r.meta || {};
     const name = norm(m.name || '');
     const email = norm(m.email || '');
@@ -47,11 +48,20 @@ export const GET: RequestHandler = async ({ url }) => {
     // light fuzz
     if (!score && q.length >= 3 && name.split(' ').some(tok => tok.startsWith(q))) { score += 5; hits.push('prefix'); }
 
+    // Module counts: fetch docs for this entity's collection (cap to 300 to keep fast)
     const modules: Record<string, number> = {};
-    // optionally, we could fetch module info; for now, leave empty counts
+    if (m.entity) {
+      const col = await getOrCreateCollectionByName(toCollectionName(m.entity));
+      const dump = await getDocs(col.id, { limit: 300, include: ['metadatas'] });
+      const md = dump.metadatas || [];
+      for (const mm of md) {
+        const mod = (mm?.module || mm?.Module || 'Record') as string;
+        modules[mod] = (modules[mod] || 0) + 1;
+      }
+    }
 
     return { score, hits, entity: m.entity, name: m.name || '', email: m.email || '', company: m.company || '', phone: m.phone || '', modules };
-  })
+  }))
   .filter(r => r.score > 0)
   .sort((a,b) => b.score - a.score)
   .slice(0, limit);
