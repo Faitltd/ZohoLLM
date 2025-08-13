@@ -82,10 +82,15 @@
     <h2>Matches</h2>
     <div style="opacity:.7; font-size:.85rem; margin-bottom:.5rem;">{results.length} result{results.length===1?'':'s'}</div>
     {#each results as m}
-      <button on:click={() => pick(m)} style="display:block;width:100%;text-align:left;margin:.5rem 0;padding:.75rem;border-radius:.5rem;border:1px solid #333;background:#111;">
-        <strong>{m.name || m.email || m.company}</strong>
-        <div style="opacity:.8">{m.company} {m.email ? `• ${m.email}` : ''} {m.phone ? `• ${m.phone}` : ''}</div>
-        <div style="margin-top:.25rem; display:flex; flex-wrap:wrap; gap:.25rem;">
+      <button on:click={() => pick(m)} class="result-item">
+        <div class="result-title">{m.name || m.email || m.company || m.entity}</div>
+        <div class="result-sub">
+          {#if m.company}{m.company}{/if}
+          {#if m.email} • {m.email}{/if}
+          {#if m.phone} • {m.phone}{/if}
+          {#if m.address_line} • {m.address_line}{/if}
+        </div>
+        <div class="result-badges" style="margin-top:.25rem; display:flex; flex-wrap:wrap; gap:.25rem;">
           {#each Object.entries(m.modules || {}) as [mod, count]}
             <span style="display:inline-flex; align-items:center; gap:.25rem; padding:.1rem .4rem; border-radius:999px; font-size:.72rem; color:#fff; background:{
               mod==='Deals' ? '#2563eb' : mod==='Notes' ? '#16a34a' : mod==='Calls' ? '#f97316' : mod==='Tasks' ? '#7c3aed' : mod==='Contacts' ? '#0891b2' : mod==='Leads' ? '#a16207' : mod==='Projects' ? '#9333ea' : mod==='Emails' ? '#ea580c' : mod==='Meetings' ? '#059669' : mod==='WorkDrive' ? '#475569' : '#6b7280'
@@ -136,6 +141,24 @@
                 </details>
               </div>
             {/each}
+
+<style>
+  .result-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin: .5rem 0;
+    padding: .75rem;
+    border-radius: .5rem;
+    border: 1px solid #cbd5e1; /* slate-300 */
+    background: #ffffff; /* white */
+    color: #111827; /* slate-900 text */
+  }
+  .result-item:hover { background: #f8fafc; /* slate-50 */ }
+  .result-title { font-weight: 600; color: #0f172a; /* slate-900*/ }
+  .result-sub { opacity: .9; font-size: .9rem; color: #334155; /* slate-700 */ }
+</style>
+
           </div>
         </div>
       {/if}

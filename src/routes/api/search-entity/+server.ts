@@ -85,6 +85,7 @@ export const GET: RequestHandler = async ({ url }) => {
         company: x.md.company ?? '',
         email: x.md.email ?? '',
         phone: x.md.phone ?? '',
+        address_line: x.md.address_line ?? '',
         distance: 0.0,
         reason: 'substring'
       }));
