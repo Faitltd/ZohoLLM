@@ -54,11 +54,15 @@ export async function ensureDirectoryEntry(entity: string, payload: any) {
   // Contact info
   const email = (payload.Email || payload.email || '').toString().trim().toLowerCase();
   const phone = (payload.Phone || payload.phone || '').toString().trim();
+  // Prefer composed address_line if provided; otherwise assemble from parts
   const address_line = (
-    payload.Mailing_Street ||
-    payload.Street ||
     payload.address_line ||
-    ''
+    [
+      payload.Mailing_Street || payload.Street || payload.Address,
+      payload.Mailing_City || payload.City,
+      payload.Mailing_State || payload.State,
+      payload.Mailing_Zip || payload.Zip || payload.Zip_Code || payload.Postal_Code,
+    ].filter(Boolean).join(', ')
   ).toString().trim();
 
   // Aliases and phone variants

@@ -100,6 +100,7 @@ export const GET: RequestHandler = async ({ url }) => {
       company: md.company ?? '',
       email: md.email ?? '',
       phone: md.phone ?? '',
+      address_line: md.address_line ?? '',
       distance: (vres.distances?.[0]?.[i] ?? 999),
       reason: 'vector'
     })).filter(m => m.entity && !uniq.has(m.entity)).slice(0, 2);
