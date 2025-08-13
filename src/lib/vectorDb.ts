@@ -124,7 +124,7 @@ export function getActiveVectorBackend(): "memory" | "chroma" | "auto" {
 }
 
 /** OpenAI Embeddings helper */
-async function embed(texts: string[]): Promise<number[][]> {
+export async function embed(texts: string[]): Promise<number[][]> {
   const r = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
