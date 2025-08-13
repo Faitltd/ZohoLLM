@@ -19,14 +19,14 @@ const FIELDS: Record<string, string[]> = {
   Meetings: ['id','Subject','Start_Time','End_Time','Location','Description']
 };
 
-async function syncModule(moduleName: string, limitPages = 1) {
+async function syncModule(moduleName: string, limitPages = 1, perPage = 40) {
   let page = 1;
   let total = 0;
   while (page <= limitPages) {
     let data: any[] = [];
     let info: any = { more_records: false };
     try {
-      const r = await listZohoRecords({ module: moduleName, page, per_page: 200, fields: FIELDS[moduleName] || ['id'] });
+      const r = await listZohoRecords({ module: moduleName, page, per_page: perPage, fields: FIELDS[moduleName] || ['id'] });
       data = r.data; info = r.info;
     } catch (e) {
       console.error('listZohoRecords failed', moduleName, e);
@@ -59,9 +59,10 @@ export const POST: RequestHandler = async ({ request }) => {
     const body = await request.json().catch(() => ({} as any));
     const modules = (body?.modules as string[]) || ['Contacts', 'Deals'];
     const pages = Number(body?.pages ?? 1);
+    const perPage = Number(body?.perPage ?? 40);
     const results: Record<string, number> = {};
     for (const m of modules) {
-      results[m] = await syncModule(m, pages);
+      results[m] = await syncModule(m, pages, perPage);
     }
 
     return json({ ok: true, results });
