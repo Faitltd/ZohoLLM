@@ -9,11 +9,29 @@ import { buildDoc } from '$lib/builders';
 
 export const config = { runtime: 'nodejs22.x' } as const;
 
+const FIELDS: Record<string, string[]> = {
+  Leads: ['id','First_Name','Last_Name','Lead_Name','Company','Lead_Status','Email','Phone','Street','City','State','Zip_Code','Description'],
+  Contacts: ['id','First_Name','Last_Name','Full_Name','Contact_Name','Email','Phone','Mobile','Mailing_Street','Mailing_City','Mailing_State','Mailing_Zip'],
+  Deals: ['id','Deal_Name','Stage','Amount','Probability','Next_Step','Email','Phone','Account_Name','Street','City','State','Zip_Code','Description'],
+  Notes: ['id','Note_Title','Note_Content','Parent_Id'],
+  Tasks: ['id','Subject','Status','Due_Date','Description'],
+  Calls: ['id','Subject','Call_Type','Call_Purpose','Call_Result','Call_Duration','Phone'],
+  Meetings: ['id','Subject','Start_Time','End_Time','Location','Description']
+};
+
 async function syncModule(moduleName: string, limitPages = 3) {
   let page = 1;
   let total = 0;
   while (page <= limitPages) {
-    const { data, info } = await listZohoRecords({ module: moduleName, page, per_page: 200 });
+    let data: any[] = [];
+    let info: any = { more_records: false };
+    try {
+      const r = await listZohoRecords({ module: moduleName, page, per_page: 200, fields: FIELDS[moduleName] || ['id'] });
+      data = r.data; info = r.info;
+    } catch (e) {
+      console.error('listZohoRecords failed', moduleName, e);
+      break;
+    }
     for (const rec of data) {
       try {
         const payload = { ...rec, module: moduleName };
