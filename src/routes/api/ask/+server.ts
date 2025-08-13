@@ -76,7 +76,8 @@ export const POST: RequestHandler = async ({ request }) => {
     const metas: any[] = vres.metadatas?.[0] ?? [];
 
     // 3) lexical boost: pull docs (cap) and pick those that contain key terms
-    const dump = await getDocs(col.id, { limit: 150, include: ['metadatas','documents','ids'] });
+    // Chroma does not accept 'ids' in include; ids are returned by default
+    const dump = await getDocs(col.id, { limit: 150, include: ['metadatas','documents'] });
     const lexMatches = (dump.documents || []).map((d: string, i: number) => ({
       score: contains(d, question) ? 2 : 0,
       doc: d,
