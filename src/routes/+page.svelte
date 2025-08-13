@@ -91,6 +91,12 @@
           {#if m.address_line} • {m.address_line}{/if}
         </div>
         <div class="result-badges" style="margin-top:.25rem; display:flex; flex-wrap:wrap; gap:.25rem;">
+          {#if m.deal}
+            <span title="Deal" style="background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:.375rem;padding:.125rem .375rem;">{m.deal.name}{#if m.deal.stage} • {m.deal.stage}{/if}{#if m.deal.amount} • ${m.deal.amount}{/if}</span>
+          {/if}
+          {#if m.last_note}
+            <span title="Latest note" style="background:#ecfeff;color:#155e75;border:1px solid #a5f3fc;border-radius:.375rem;padding:.125rem .375rem;">Note: {m.last_note.title || m.last_note.content}</span>
+          {/if}
           {#each Object.entries(m.modules || {}) as [mod, count]}
             <span style="display:inline-flex; align-items:center; gap:.25rem; padding:.1rem .4rem; border-radius:999px; font-size:.72rem; color:#fff; background:{
               mod==='Deals' ? '#2563eb' : mod==='Notes' ? '#16a34a' : mod==='Calls' ? '#f97316' : mod==='Tasks' ? '#7c3aed' : mod==='Contacts' ? '#0891b2' : mod==='Leads' ? '#a16207' : mod==='Projects' ? '#9333ea' : mod==='Emails' ? '#ea580c' : mod==='Meetings' ? '#059669' : mod==='WorkDrive' ? '#475569' : '#6b7280'

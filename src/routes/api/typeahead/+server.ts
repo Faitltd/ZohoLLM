@@ -48,21 +48,38 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
       if (!score && q.length >= 3 && name.split(' ').some(tok => tok.startsWith(q))) { score += 5; hits.push('prefix'); }
 
-      // Module counts are optional; do not fail the whole request if it errors
+      // Module counts and light summaries (do not fail request on error)
       const modules: Record<string, number> = {};
+      let deal: { name?: string; stage?: string; amount?: string; next_step?: string } | undefined;
+      let last_note: { title?: string; content?: string } | undefined;
       if (m.entity) {
         try {
           const ecol = await getOrCreateCollectionByName(toCollectionName(m.entity));
-          const edump = await getDocs(ecol.id, { limit: 300, include: ['metadatas'] });
+          const edump = await getDocs(ecol.id, { limit: 300, include: ['metadatas','documents'] });
           const md = edump.metadatas || [];
-          for (const mm of md) {
-            const mod = (mm?.module || mm?.Module || 'Record') as string;
+          for (let i = 0; i < md.length; i++) {
+            const mm: any = md[i] || {};
+            const mod = (mm.module || mm.Module || 'Record') as string;
             modules[mod] = (modules[mod] || 0) + 1;
+            if (mod === 'Deals' && !deal) {
+              deal = {
+                name: mm.Deal_Name || mm['Deal Name'] || undefined,
+                stage: mm.Stage || undefined,
+                amount: mm.Amount || undefined,
+                next_step: mm.Next_Step || mm['Next Step'] || undefined
+              };
+            }
+            if (mod === 'Notes' && !last_note) {
+              last_note = {
+                title: mm.Note_Title || undefined,
+                content: (mm.Note_Content || '').slice(0, 180) || undefined
+              };
+            }
           }
         } catch {}
       }
 
-      return { score, hits, entity: m.entity, name: m.name || '', email: m.email || '', company: m.company || '', phone: m.phone || '', modules };
+      return { score, hits, entity: m.entity, name: m.name || '', email: m.email || '', company: m.company || '', phone: m.phone || '', address_line: m.address_line || '', modules, deal, last_note };
     }))
     .filter(r => r.score > 0)
     .sort((a,b) => b.score - a.score)
