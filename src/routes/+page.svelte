@@ -10,25 +10,28 @@
   let sourceDetails: Array<{ module: string; id: string; text: string; meta?: any }> = [];
   let loadingAsk = false;
 
+  let loadingSearch = false;
+
   let typingTimer: any;
   const DEBOUNCE = 200;
 
   async function searchNow() {
     if (!term.trim()) { results = []; return; }
+    loadingSearch = true;
     try {
       const r = await fetch(`/api/typeahead?term=${encodeURIComponent(term)}`);
       if (r.ok) {
         const data = await r.json();
         results = data.matches || [];
-        return;
+      } else {
+        const r2 = await fetch(`/api/search-entity?term=${encodeURIComponent(term)}&k=10`);
+        const data2 = await r2.json();
+        results = data2.matches || [];
       }
-      // Fallback if typeahead route not available in deployment
-      const r2 = await fetch(`/api/search-entity?term=${encodeURIComponent(term)}&k=10`);
-      const data2 = await r2.json();
-      results = data2.matches || [];
     } catch {
-      // Final fallback: empty results
       results = [];
+    } finally {
+      loadingSearch = false;
     }
   }
 
@@ -62,9 +65,16 @@
 
 <section class="container" style="max-width: 760px; margin: 2rem auto;">
   <h1>Client Search</h1>
-  <input placeholder="Type name, email, phone, address, company…" on:input={onType} value={term} />
+  <div style="display:flex; gap:.5rem; align-items:center;">
+    <input placeholder="Type name, email, phone, address, company…" on:input={onType} bind:value={term} style="flex:1;" />
+    <button on:click={searchNow} disabled={loadingSearch}>
+      {#if loadingSearch}Searching…{/if}
+      {#if !loadingSearch}Search{/if}
+    </button>
+  </div>
   {#if results.length}
     <h2>Matches</h2>
+    <div style="opacity:.7; font-size:.85rem; margin-bottom:.5rem;">{results.length} result{results.length===1?'':'s'}</div>
     {#each results as m}
       <button on:click={() => pick(m)} style="display:block;width:100%;text-align:left;margin:.5rem 0;padding:.75rem;border-radius:.5rem;border:1px solid #333;background:#111;">
         <strong>{m.name || m.email || m.company}</strong>
@@ -100,7 +110,7 @@
             <span style="opacity:.7">toggle</span>
           </button>
           <div class="card-body" style="padding:.5rem .75rem;" hidden>
-            {#each sourceDetails as s, i}
+            {#each sourceDetails as s}
               <div class="src" style="border:1px solid #444; border-radius:6px; padding:.5rem; margin:.5rem 0;">
                 <div style="display:flex; align-items:center; gap:.5rem;">
                   <span class="badge" style="background:#0b5; color:#fff; padding:.1rem .4rem; border-radius:999px; font-size:.75rem;">{s.module}</span>
