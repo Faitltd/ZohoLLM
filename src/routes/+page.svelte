@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   let term = '';
   let results: any[] = [];
   let selected: { entity: string, name: string } | null = null;
@@ -13,6 +12,12 @@
   let loadingSearch = false;
 
   let typingTimer: any;
+  function onSearchClick(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    searchNow();
+  }
+
   const DEBOUNCE = 200;
 
   async function searchNow() {
@@ -28,7 +33,8 @@
         const data2 = await r2.json();
         results = data2.matches || [];
       }
-    } catch {
+    } catch (err) {
+      console.error('searchNow failed', err);
       results = [];
     } finally {
       loadingSearch = false;
@@ -67,7 +73,7 @@
   <h1>Client Search</h1>
   <div style="display:flex; gap:.5rem; align-items:center;">
     <input placeholder="Type name, email, phone, address, company…" on:input={onType} bind:value={term} style="flex:1;" />
-    <button on:click={searchNow} disabled={loadingSearch}>
+    <button type="button" on:click={onSearchClick} disabled={loadingSearch} aria-disabled={loadingSearch} style="opacity:{loadingSearch?0.7:1}; cursor:{loadingSearch?'progress':'pointer'};">
       {#if loadingSearch}Searching…{/if}
       {#if !loadingSearch}Search{/if}
     </button>
