@@ -94,7 +94,11 @@
             </span>
           {/each}
         </div>
-        <div style="opacity:.6;font-size:.85rem">hits: {m.hits.join(', ')}</div>
+        {#if m.hits?.length}
+          <div style="opacity:.6;font-size:.85rem">hits: {m.hits.join(', ')}</div>
+        {:else if m.reason}
+          <div style="opacity:.6;font-size:.85rem">match: {m.reason}</div>
+        {/if}
       </button>
     {/each}
   {/if}
