@@ -19,7 +19,7 @@ const FIELDS: Record<string, string[]> = {
   Meetings: ['id','Subject','Start_Time','End_Time','Location','Description']
 };
 
-async function syncModule(moduleName: string, limitPages = 3) {
+async function syncModule(moduleName: string, limitPages = 1) {
   let page = 1;
   let total = 0;
   while (page <= limitPages) {
@@ -56,10 +56,12 @@ export const POST: RequestHandler = async ({ request }) => {
     const key = request.headers.get('x-admin-key') || '';
     if (!env.ADMIN_SHARED_KEY || key !== env.ADMIN_SHARED_KEY) return json({ error: 'unauthorized' }, { status: 401 });
 
-    const modules = (await request.json()?.modules) || ['Leads', 'Contacts', 'Deals', 'Notes', 'Tasks', 'Calls', 'Projects'];
+    const body = await request.json().catch(() => ({} as any));
+    const modules = (body?.modules as string[]) || ['Contacts', 'Deals'];
+    const pages = Number(body?.pages ?? 1);
     const results: Record<string, number> = {};
     for (const m of modules) {
-      results[m] = await syncModule(m, 5);
+      results[m] = await syncModule(m, pages);
     }
 
     return json({ ok: true, results });

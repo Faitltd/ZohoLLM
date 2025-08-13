@@ -82,7 +82,8 @@ export async function ensureDirectoryEntry(entity: string, payload: any) {
     alt_names.length ? `aliases: ${alt_names.join(', ')}` : ''
   ].filter(Boolean).join('\n');
 
-  const col = await getOrCreateCollectionByName(toCollectionName('entity_directory'));
+  // Important: keep the directory collection name stable so readers see new entries
+  const col = await getOrCreateCollectionByName('entity_directory');
   const [embedding] = await embed([doc]);
 
   await upsertDocs(col.id, {
